@@ -84,7 +84,7 @@
 			}
 
 			function noise() {
-				const sound = soundList[window.location.search.substring(1)]
+				const sound = soundList[window.location.search.substring(1)] || soundList['']
 				if (Array.isArray(sound)) {
 					sound[Math.ceil(Math.random() * sound.length) - 1].play()
 				} else {
