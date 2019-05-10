@@ -1,0 +1,97 @@
+<html>
+	<head>
+		<title>Axle</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400" rel="stylesheet">
+		<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
+	</head>
+	<body style="background: black; margin: 0; color: white; font-size: 35vh; font-family: 'Roboto Mono', monospace; user-select: none; transition: background-color 0.3s ease-out">
+		<div class="timer" style="height: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(180deg);"></div>
+		<div class="timer" style="height: 50%; display: flex; align-items: center; justify-content: center;"></div>
+		<script>
+			const tickSound = new Audio('./tick.wav')
+			const beepSound = new Audio('./beep.wav')
+			const deadSound = new Audio('./dead.wav')
+
+			let count = parseInt(window.location.hash.substring(1) || '15')
+			let start = count
+			let value = count
+			let timer = null
+
+			function paint() {
+				$('.timer').text(value)
+			}
+			paint()
+
+			$(window).on('click tap', () => {
+				clearInterval(timer)
+				noise()
+				$('body').css({ background: 'lime' })
+
+				if (timer === null) {
+					start = count - 1
+				} else {
+					start = count
+				}
+				value = start
+				paint()
+
+				timer = setInterval(() => {
+					value -= 1
+					paint()
+
+					if (value === 0) {
+						deadSound.play()
+						clearInterval(timer)
+						timer = null
+					} else if (value <= 5) {
+						$('body').css({ background: 'red' })
+						beepSound.play()
+					} else if (value % 2 === start % 2) {
+						tickSound.play()
+					}
+
+				}, 1000)
+			})
+
+			$(window).on('dblclick swipe', () => {
+				clearInterval(timer)
+				timer = null
+
+				value = count
+				paint()
+				$('body').css({ background: 'black' })
+			})
+
+			$(window).on('taphold contextmenu', e => {
+				e.preventDefault()
+
+				document.documentElement.requestFullscreen()
+			})
+
+			const soundList = {
+				'': new Audio('./button-29.wav'),
+				car: new Audio('./car-locked-honk-01.wav'),
+				gun: new Audio('./gun-gunshot-01.wav'),
+				fun: [
+					new Audio('./fart-01.wav'),
+					new Audio('./fart-03.wav'),
+					new Audio('./fart-06.wav'),
+					new Audio('./burp-01.wav'),
+					new Audio('./man-scream-01.wav'),
+					new Audio('./woman-scream-02.wav'),
+				]
+			}
+
+			function noise() {
+				const sound = soundList[window.location.search.substring(1)]
+				if (Array.isArray(sound)) {
+					sound[Math.ceil(Math.random() * sound.length) - 1].play()
+				} else {
+					sound.play()
+				}
+			}
+		</script>
+	</body>
+</html>
