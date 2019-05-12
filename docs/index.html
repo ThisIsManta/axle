@@ -2,38 +2,36 @@
 	<head>
 		<title>Axle</title>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
-		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:100,500" rel="stylesheet">
 		<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
 	</head>
-	<body style="background: black; margin: 0; color: white; font-size: 35vh; font-family: 'Roboto Mono', monospace; user-select: none; transition: background-color 0.3s ease-out">
-		<div class="timer" style="height: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(180deg);"></div>
-		<div class="timer" style="height: 50%; display: flex; align-items: center; justify-content: center;"></div>
+	<body style="background: black; margin: 0; color: white; font-size: 35vh; font-family: 'Roboto Mono', monospace; font-weight: 500; user-select: none; transition: background-color 0.3s ease-out">
+		<div class="timer top" style="height: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
+		<div class="timer btm" style="height: 50%; display: flex; align-items: center; justify-content: center;"></div>
 		<script>
 			const tickSound = new Audio('./tick.wav')
 			const beepSound = new Audio('./beep.wav')
 			const deadSound = new Audio('./dead.wav')
 
+			const options = window.location.search.substring(1).split('&')
+
 			let count = parseInt(window.location.hash.substring(1) || '15')
-			let start = count
 			let value = count
 			let timer = null
 
 			function paint() {
-				$('.timer').text(value)
+				const m = Math.floor(value / 60)
+				const s = value % 60
+				$('.timer').html(value >= 60 ? (m + '' + `<span style="font-weight: 100;">${String(s).padStart(2, '0')}</span>`) : s)
 			}
 			paint()
 
 			$(window).on('click', () => {
 				clearInterval(timer)
-				noise()
-				$('body').css({ background: 'lime' })
+				pushSound()
+				$('body').css({ background: 'lime', color: 'black' })
 
-				if (timer === null) {
-					start = count - 1
-				} else {
-					start = count
-				}
-				value = start
+				value = count
 				paint()
 
 				timer = setInterval(() => {
@@ -45,9 +43,9 @@
 						clearInterval(timer)
 						timer = null
 					} else if (value <= 5) {
-						$('body').css({ background: 'red' })
+						$('body').css({ background: 'red', color: 'white' })
 						beepSound.play()
-					} else if (value % 2 === start % 2) {
+					} else if (value <= 60 ? (value % 2 === 0) : (value % 5 === 0)) {
 						tickSound.play()
 					}
 
@@ -60,7 +58,7 @@
 
 				value = count
 				paint()
-				$('body').css({ background: 'black' })
+				$('body').css({ background: 'black', color: 'white' })
 			})
 
 			$(window).on('contextmenu', e => {
@@ -83,8 +81,8 @@
 				]
 			}
 
-			function noise() {
-				const sound = soundList[window.location.search.substring(1)] || soundList['']
+			function pushSound() {
+				const sound = soundList[options.find(option => soundList[option]) || '']
 				if (Array.isArray(sound)) {
 					sound[Math.ceil(Math.random() * sound.length) - 1].play()
 				} else {
