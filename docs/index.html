@@ -13,9 +13,9 @@
 			const beepSound = new Audio('./beep.wav')
 			const deadSound = new Audio('./dead.wav')
 
-			const options = window.location.search.substring(1).split('&')
+			const options = Object.fromEntries(window.location.search.substring(1).split('&').map(text => text.split('=')))
 
-			let count = parseInt(window.location.hash.substring(1) || '15')
+			let count = parseInt((options.time || '15'))
 			let value = count
 			let timer = null
 
@@ -82,7 +82,7 @@
 			}
 
 			function pushSound() {
-				const sound = soundList[options.find(option => soundList[option]) || '']
+				const sound = soundList[options.sound || '']
 				if (Array.isArray(sound)) {
 					sound[Math.ceil(Math.random() * sound.length) - 1].play()
 				} else {
