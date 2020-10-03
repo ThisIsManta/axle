@@ -19,6 +19,10 @@
 				transition: all 0.3s ease-out
 			}
 
+			body.time-out {
+				background: red;
+			}
+
 			.timer {
 				height: 50%;
 				display: flex;
@@ -33,11 +37,36 @@
 			.landscape .timer.btm {
 				height: 100%;
 			}
+
+			.clock {
+				width: 80px;
+				height: 100%;
+				position: fixed;
+				background: red;
+				box-shadow: 0px 0px 10px 10px red;
+				top: 0;
+				left: -100px;
+			}
+
+			.clock.start {
+				animation: slide 1s linear infinite;
+			}
+
+			@keyframes slide {
+				from {
+					transform: translateX(-80px);
+				}
+
+				to {
+					transform: translateX(calc(100vw + 100px));
+				}
+			}
 		</style>
 	</head>
 	<body>
 		<div class="timer top" style="background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
 		<div class="timer btm"></div>
+		<div class="clock"></div>
 		<script>
 			const tickSound = new Audio('./tick.wav')
 			const beepSound = new Audio('./beep.wav')
@@ -54,14 +83,26 @@
 			const digit = (Math.floor(count / 60) || '').toString().length + (count >= 60 ? 2 : count.toString().length)
 			let value = count
 			let timer = null
+			const clock = $('.clock')
 
 			function paint() {
 				const m = Math.floor(value / 60)
 				const s = value % 60
 
 				$('.timer').html(count >= 60 ? (m + '' + `<span style="font-weight: 200;">${String(s).padStart(2, '0')}</span>`) : s)
+
+				if (value === 0) {
+					$('body').addClass('time-out')
+				} else {
+					$('body').removeClass('time-out')
+				}
 			}
 			paint()
+
+			function clearAnimation() {
+				clock.removeClass('start')
+				void clock[0].offsetWidth // See https://css-tricks.com/restart-css-animation/#update-another-javascript-method-to-restart-a-css-animation
+			}
 
 			function resize() {
 				if (window.innerWidth > window.innerHeight) {
@@ -77,51 +118,72 @@
 			}
 			resize()
 
-			$(window).on('resize', resize)
-
-			$(window).on('click', () => {
+			function start() {
 				clearInterval(timer)
 				pushSound()
-				$('body').css({ background: 'lime', color: 'black' })
+
+				document.documentElement.requestFullscreen()
 
 				value = count
 				paint()
+				clearAnimation()
+				clock.addClass('start')
 
 				timer = setInterval(() => {
 					value -= 1
 					paint()
 
-					if (value < 10) {
-						$('body').css({ background: 'red', color: 'white' })
+					if (value === 0) {
+						deadSound.play()
+						clearInterval(timer)
+						timer = null
+						clearAnimation()
 
-						if (value === 0) {
-							deadSound.play()
-							clearInterval(timer)
-							timer = null
-						} else {
-							beepSound.play()
+					} else if (value < 5) {
+						beepSound.play()
+
+					} else if (value <= 15) {
+						if (value % 2 === 0) {
+							tickSound.play()
 						}
 
-					} else if (value <= 30 ? (value % 2 === 0) : (value % 5 === 0)) {
+					} else if (value % 5 === 0) {
 						tickSound.play()
 					}
-
 				}, 1000)
-			})
+			}
 
-			$(window).on('dblclick', () => {
+			function reset() {
 				clearInterval(timer)
 				timer = null
 
+				document.exitFullscreen()
+
 				value = count
 				paint()
-				$('body').css({ background: 'black', color: 'white' })
+				clearAnimation()
+			}
+
+			$(window).on('resize', resize)
+
+			$(window).on('click', start)
+
+			$(window).on('dblclick', reset)
+
+			$(window).on('keyup', e => {
+				if (e.key === ' ') {
+					if (timer === null) {
+						start()
+					} else {
+						reset()
+					}
+				}
 			})
 
 			$(window).on('contextmenu', e => {
 				e.preventDefault()
 
-				document.documentElement.requestFullscreen()
+				// TODO: show time setter input
 			})
 
 			const soundList = {
