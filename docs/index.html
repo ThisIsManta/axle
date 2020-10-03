@@ -54,7 +54,7 @@
 						deadSound.play()
 						clearInterval(timer)
 						timer = null
-					} else if (value <= 5) {
+					} else if (value < 10) {
 						$('body').css({ background: 'red', color: 'white' })
 						beepSound.play()
 					} else if (value <= 30 ? (value % 2 === 0) : (value % 5 === 0)) {
