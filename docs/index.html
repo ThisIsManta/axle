@@ -2,20 +2,55 @@
 	<head>
 		<title>Axle</title>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
-		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:200,500" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:200,400" rel="stylesheet">
 		<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
+		<style>
+			body {
+				position: fixed;
+				width: 100%;
+				height: 100%;
+				background: black;
+				margin: 0;
+				color: white;
+				font-family: 'Roboto Mono', monospace;
+				font-weight: 400;
+				line-height: 1;
+				user-select: none;
+				transition: all 0.3s ease-out
+			}
+
+			.timer {
+				height: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.landscape .timer.top {
+				display: none;
+			}
+
+			.landscape .timer.btm {
+				height: 100%;
+			}
+		</style>
 	</head>
-	<body style="position: fixed; width: 100%; height: 100%; background: black; margin: 0; color: white; font-family: 'Roboto Mono', monospace; font-weight: 500; line-height: 1; user-select: none; transition: background-color 0.3s ease-out">
-		<div class="timer top" style="height: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
-		<div class="timer btm" style="height: 50%; display: flex; align-items: center; justify-content: center;"></div>
+	<body>
+		<div class="timer top" style="background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
+		<div class="timer btm"></div>
 		<script>
 			const tickSound = new Audio('./tick.wav')
 			const beepSound = new Audio('./beep.wav')
 			const deadSound = new Audio('./dead.wav')
 
-			const options = Object.fromEntries(window.location.search.substring(1).split('&').map(text => text.split('=')))
+			const options = Object.fromEntries(window.location.search.substring(1).split('&').filter(text => text.length > 0).map(text => text.split('=')))
 
-			const count = parseInt((options.time || '15'))
+			const count = Math.floor(parseInt(options.time))
+			if (isNaN(count) || count <= 0) {
+				options.time = '15'
+				window.location.search = Object.entries(options).map(([key, value]) => key + '=' + value).join('&')
+			}
+
 			const digit = (Math.floor(count / 60) || '').toString().length + (count >= 60 ? 2 : count.toString().length)
 			let value = count
 			let timer = null
@@ -29,7 +64,13 @@
 			paint()
 
 			function resize() {
-				const e = $('.timer.top')[0]
+				if (window.innerWidth > window.innerHeight) {
+					$('body').addClass('landscape')
+				} else {
+					$('body').removeClass('landscape')
+				}
+
+				const e = $('.timer.btm')[0]
 				const d = Math.min(e.clientWidth, e.clientHeight)
 				const f = Math.min(d, d / digit * 1.5)
 				$('body')[0].style.fontSize = f + 'px'
@@ -50,13 +91,17 @@
 					value -= 1
 					paint()
 
-					if (value === 0) {
-						deadSound.play()
-						clearInterval(timer)
-						timer = null
-					} else if (value < 10) {
+					if (value < 10) {
 						$('body').css({ background: 'red', color: 'white' })
-						beepSound.play()
+
+						if (value === 0) {
+							deadSound.play()
+							clearInterval(timer)
+							timer = null
+						} else {
+							beepSound.play()
+						}
+
 					} else if (value <= 30 ? (value % 2 === 0) : (value % 5 === 0)) {
 						tickSound.play()
 					}
