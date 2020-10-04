@@ -125,8 +125,10 @@
 
 			const count = Math.floor(parseInt(options.time))
 			if (isNaN(count) || count <= 0) {
-				options.time = '15'
+				options.time = localStorage.getItem('time') || '15'
 				forceOptions()
+			} else {
+				localStorage.setItem('time', count)
 			}
 
 			function getUnits(value) {
