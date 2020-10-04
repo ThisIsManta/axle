@@ -5,50 +5,58 @@
 		<link href="https://fonts.googleapis.com/css?family=Roboto+Mono:200,400" rel="stylesheet">
 		<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' />
 		<style>
-			body {
-				position: fixed;
-				width: 100%;
-				height: 100%;
-				background: black;
-				margin: 0;
-				color: white;
+			html {
 				font-family: 'Roboto Mono', monospace;
+				font-size: 2rem;
 				font-weight: 400;
 				line-height: 1;
+				background: black;
+				color: white;
+			}
+
+			body {
+				margin: 0;
 				user-select: none;
+			}
+
+			.clock {
+				position: fixed;
+				top: 0;
+				width: 100%;
+				height: 100%;
 				transition: all 0.3s ease-out
 			}
 
-			body.time-out {
+			.clock.time-out {
 				background: red;
 			}
 
-			.timer {
+			.clock .face {
 				height: 50%;
 				display: flex;
 				align-items: center;
 				justify-content: center;
 			}
 
-			.landscape .timer.top {
+			.clock.landscape .face.top {
 				display: none;
 			}
 
-			.landscape .timer.btm {
+			.clock.landscape .face.btm {
 				height: 100%;
 			}
 
-			.clock {
+			.hand {
 				width: 80px;
 				height: 100%;
-				position: fixed;
+				position: absolute;
 				background: red;
 				box-shadow: 0px 0px 10px 10px red;
 				top: 0;
 				left: -100px;
 			}
 
-			.clock.start {
+			.clock .hand.start {
 				animation: slide 1s linear infinite;
 			}
 
@@ -61,12 +69,48 @@
 					transform: translateX(calc(100vw + 100px));
 				}
 			}
+
+			.control {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: black;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.control input {
+				background: transparent;
+				color: white;
+				border: 1px solid white;
+				text-align: right;
+				font-family: inherit;
+				font-size: inherit;
+				width: 3rem;
+				padding: 0 5px;
+				margin: 0 5px 0 20px;
+				outline: none;
+			}
+
+			input::-webkit-outer-spin-button,
+			input::-webkit-inner-spin-button {
+				-webkit-appearance: none;
+			}
 		</style>
 	</head>
 	<body>
-		<div class="timer top" style="background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
-		<div class="timer btm"></div>
-		<div class="clock"></div>
+		<section class="clock">
+			<div class="face top" style="background: linear-gradient(#00000020, transparent, transparent, transparent, transparent); transform: rotate(180deg);"></div>
+			<div class="face btm"></div>
+			<div class="hand"></div>
+		</section>
+		<div class="control" style="display: none;">
+			<input name="minutes" type="number" value="0" />m
+			<input name="seconds" type="number" value="15" />s
+		</div>
 		<script>
 			const tickSound = new Audio('./tick.wav')
 			const beepSound = new Audio('./beep.wav')
@@ -74,47 +118,58 @@
 
 			const options = Object.fromEntries(window.location.search.substring(1).split('&').filter(text => text.length > 0).map(text => text.split('=')))
 
+			function forceOptions() {
+				window.location.search = Object.entries(options).map(([key, value]) => key + '=' + value).join('&')
+			}
+
 			const count = Math.floor(parseInt(options.time))
 			if (isNaN(count) || count <= 0) {
 				options.time = '15'
-				window.location.search = Object.entries(options).map(([key, value]) => key + '=' + value).join('&')
+				forceOptions()
 			}
+
+			function getUnits(value) {
+				return {
+					m: Math.floor(value / 60),
+					s: value % 60
+				}
+			}
+
+			window.document.title = `${getUnits(count).m}m ${getUnits(count).s}s`
 
 			const digit = (Math.floor(count / 60) || '').toString().length + (count >= 60 ? 2 : count.toString().length)
 			let value = count
 			let timer = null
-			const clock = $('.clock')
+			const clockHand = $('.clock .hand')
 
 			function paint() {
-				const m = Math.floor(value / 60)
-				const s = value % 60
-
-				$('.timer').html(count >= 60 ? (m + '' + `<span style="font-weight: 200;">${String(s).padStart(2, '0')}</span>`) : s)
+				const { m, s } = getUnits(value)
+				$('.clock .face').html(count >= 60 ? (m + '' + `<span style="font-weight: 200;">${String(s).padStart(2, '0')}</span>`) : s)
 
 				if (value === 0) {
-					$('body').addClass('time-out')
+					$('.clock').addClass('time-out')
 				} else {
-					$('body').removeClass('time-out')
+					$('.clock').removeClass('time-out')
 				}
 			}
 			paint()
 
 			function clearAnimation() {
-				clock.removeClass('start')
-				void clock[0].offsetWidth // See https://css-tricks.com/restart-css-animation/#update-another-javascript-method-to-restart-a-css-animation
+				clockHand.removeClass('start')
+				void clockHand[0].offsetWidth // See https://css-tricks.com/restart-css-animation/#update-another-javascript-method-to-restart-a-css-animation
 			}
 
 			function resize() {
 				if (window.innerWidth > window.innerHeight) {
-					$('body').addClass('landscape')
+					$('.clock').addClass('landscape')
 				} else {
-					$('body').removeClass('landscape')
+					$('.clock').removeClass('landscape')
 				}
 
-				const e = $('.timer.btm')[0]
+				const e = $('.face.btm')[0]
 				const d = Math.min(e.clientWidth, e.clientHeight)
 				const f = Math.min(d, d / digit * 1.5)
-				$('body')[0].style.fontSize = f + 'px'
+				$('.clock')[0].style.fontSize = f + 'px'
 			}
 			resize()
 
@@ -127,9 +182,13 @@
 				value = count
 				paint()
 				clearAnimation()
-				clock.addClass('start')
+				clockHand.addClass('start')
 
 				timer = setInterval(() => {
+					if (timer === null) {
+						return
+					}
+
 					value -= 1
 					paint()
 
@@ -153,7 +212,7 @@
 				}, 1000)
 			}
 
-			function reset() {
+			function pause() {
 				clearInterval(timer)
 				timer = null
 
@@ -166,16 +225,16 @@
 
 			$(window).on('resize', resize)
 
-			$(window).on('click', start)
+			$('.clock').on('click', start)
 
-			$(window).on('dblclick', reset)
+			$('.clock').on('dblclick', pause)
 
 			$(window).on('keyup', e => {
 				if (e.key === ' ') {
 					if (timer === null) {
 						start()
 					} else {
-						reset()
+						pause()
 					}
 				}
 			})
@@ -183,7 +242,28 @@
 			$(window).on('contextmenu', e => {
 				e.preventDefault()
 
-				// TODO: show time setter input
+				pause()
+
+				if ($('.control').css('display') === 'none') {
+					const { m, s } = getUnits(count)
+					$('input[name="minutes"]').val(m)
+					$('input[name="seconds"]').val(s)
+
+					$('.control').css('display', '')
+
+					if (m > 0) {
+						$('input[name="minutes"]').select()
+					} else {
+						$('input[name="seconds"]').select()
+					}
+				}
+			})
+
+			$('input[type="number"]').on('keyup', e => {
+				if (e.key === 'Enter') {
+					options.time = parseInt($('input[name="minutes"]').val() || '0') * 60 + parseInt($('input[name="seconds"]').val() || '0')
+					forceOptions()
+				}
 			})
 
 			const soundList = {
