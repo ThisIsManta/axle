@@ -113,11 +113,18 @@
 			<input name="seconds" type="number" value="15" />s
 		</div>
 		<script>
-			const tickSound = new Audio('./tick.wav')
-			const beepSound = new Audio('./beep.wav')
-			const deadSound = new Audio('./dead.wav')
+			const options = Object.fromEntries(
+				window.location.search
+					.substring(1)
+					.split('&')
+					.filter(text => text.length > 0)
+					.map(text => text.includes('=') ? text.split('=') : [text, true])
+			)
 
-			const options = Object.fromEntries(window.location.search.substring(1).split('&').filter(text => text.length > 0).map(text => text.split('=')))
+			const jumpSound = options.silent ? { play: () => { } } : new Audio('./button-29.wav')
+			const tickSound = options.silent ? { play: () => { } } : new Audio('./tick.wav')
+			const beepSound = options.silent ? { play: () => { } } : new Audio('./beep.wav')
+			const deadSound = new Audio('./dead.wav')
 
 			function forceOptions() {
 				window.location.search = Object.entries(options).map(([key, value]) => key + '=' + value).join('&')
@@ -178,7 +185,7 @@
 
 			function start() {
 				clearInterval(timer)
-				pushSound()
+				jumpSound.play()
 
 				value = count
 				paint()
@@ -264,29 +271,6 @@
 					forceOptions()
 				}
 			})
-
-			const soundList = {
-				'': new Audio('./button-29.wav'),
-				car: new Audio('./car-locked-honk-01.wav'),
-				gun: new Audio('./gun-gunshot-01.wav'),
-				fun: [
-					new Audio('./fart-01.wav'),
-					new Audio('./fart-03.wav'),
-					new Audio('./fart-06.wav'),
-					new Audio('./burp-01.wav'),
-					new Audio('./man-scream-01.wav'),
-					new Audio('./woman-scream-02.wav'),
-				]
-			}
-
-			function pushSound() {
-				const sound = soundList[options.sound || '']
-				if (Array.isArray(sound)) {
-					sound[Math.ceil(Math.random() * sound.length) - 1].play()
-				} else {
-					sound.play()
-				}
-			}
 		</script>
 	</body>
 </html>
