@@ -311,6 +311,11 @@
 				}
 				writeOptions()
 			})
+
+			// Stop the device from going to sleep
+			if ('wakeLock' in window.navigator) {
+				window.navigator.wakeLock.request('screen')
+			}
 		</script>
 	</body>
 </html>
