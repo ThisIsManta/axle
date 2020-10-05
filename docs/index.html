@@ -100,6 +100,16 @@
 			input::-webkit-inner-spin-button {
 				-webkit-appearance: none;
 			}
+
+			.sound-toggle {
+				background: none;
+				border: none;
+				padding: 5px;
+			}
+
+			.sound-toggle img {
+				width: 1rem;
+			}
 		</style>
 	</head>
 	<body>
@@ -109,33 +119,51 @@
 			<div class="hand"></div>
 		</section>
 		<div class="control" style="display: none;">
-			<input name="minutes" type="number" value="0" />m
-			<input name="seconds" type="number" value="15" />s
+			<div>
+				<button class="sound-toggle">
+					<img src="volume_up-white-18dp.svg" />
+				</button>
+			</div>
+			<div>
+				<input name="minutes" type="number" value="0" />m
+				<input name="seconds" type="number" value="15" />s
+			</div>
 		</div>
+		<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js"></script>
 		<script>
-			const options = Object.fromEntries(
+			const savedOptions = JSON.parse(localStorage.getItem('options') || '{}')
+			const localOptions = Object.fromEntries(
 				window.location.search
 					.substring(1)
 					.split('&')
 					.filter(text => text.length > 0)
 					.map(text => text.includes('=') ? text.split('=') : [text, true])
 			)
+			const options = Object.assign(savedOptions, localOptions)
+
+			if (_.isEqual(savedOptions, localOptions) === false) {
+				writeOptions()
+			}
 
 			const jumpSound = options.silent ? { play: () => { } } : new Audio('./button-29.wav')
 			const tickSound = options.silent ? { play: () => { } } : new Audio('./tick.wav')
 			const beepSound = options.silent ? { play: () => { } } : new Audio('./beep.wav')
 			const deadSound = new Audio('./dead.wav')
 
-			function forceOptions() {
-				window.location.search = Object.entries(options).map(([key, value]) => key + '=' + value).join('&')
+			function writeOptions() {
+				window.localStorage.setItem('options', JSON.stringify(options))
+
+				window.location.replace(
+					window.location.origin +
+					window.location.pathname +
+					'?' + Object.entries(options).map(([key, value]) => value === true ? key : key + '=' + value).join('&'),
+				)
 			}
 
 			const count = Math.floor(parseInt(options.time))
 			if (isNaN(count) || count <= 0) {
-				options.time = localStorage.getItem('time') || '15'
-				forceOptions()
-			} else {
-				localStorage.setItem('time', count)
+				options.time = 15
+				writeOptions()
 			}
 
 			function getUnits(value) {
@@ -268,8 +296,20 @@
 			$('input[type="number"]').on('keyup', e => {
 				if (e.key === 'Enter') {
 					options.time = parseInt($('input[name="minutes"]').val() || '0') * 60 + parseInt($('input[name="seconds"]').val() || '0')
-					forceOptions()
+					writeOptions()
 				}
+			})
+
+			if (options.silent) {
+				$('.sound-toggle img').attr('src', 'volume_off-white-18dp.svg')
+			}
+			$('.sound-toggle').on('click', () => {
+				if (options.silent) {
+					delete options.silent
+				} else {
+					options.silent = true
+				}
+				writeOptions()
 			})
 		</script>
 	</body>
