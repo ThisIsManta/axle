@@ -39,12 +39,14 @@
 				justify-content: center;
 			}
 
-			.clock.landscape .face.top {
-				display: none;
-			}
+			@media (orientation: landscape) {
+				.clock .face.top {
+					display: none;
+				}
 
-			.clock.landscape .face.btm {
-				height: 100%;
+				.clock .face.btm {
+					height: 100%;
+				}
 			}
 
 			.hand {
@@ -57,13 +59,19 @@
 				left: -100px;
 			}
 
+			@media (orientation: portrait) {
+				.hand {
+					width: 40px;
+				}
+			}
+
 			.clock .hand.start {
 				animation: slide 1s linear infinite;
 			}
 
 			@keyframes slide {
 				from {
-					transform: translateX(-80px);
+					transform: translateX(-100px);
 				}
 
 				to {
@@ -198,12 +206,6 @@
 			}
 
 			function resize() {
-				if (window.innerWidth > window.innerHeight) {
-					$('.clock').addClass('landscape')
-				} else {
-					$('.clock').removeClass('landscape')
-				}
-
 				const e = $('.face.btm')[0]
 				const d = Math.min(e.clientWidth, e.clientHeight)
 				const f = Math.min(d, d / digit * 1.5)
