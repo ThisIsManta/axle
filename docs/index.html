@@ -84,13 +84,19 @@
 			.control {
 				position: fixed;
 				top: 0;
+				bottom: 0;
 				left: 0;
-				width: 100%;
-				height: 100%;
+				right: 0;
 				background: black;
 				display: flex;
-				gap: 20px;
 				align-items: center;
+				justify-content: center;
+			}
+
+			.control .control-inner {
+				display: flex;
+				gap: 20px;
+				flex-wrap: wrap;
 				justify-content: center;
 			}
 
@@ -112,14 +118,21 @@
 				-webkit-appearance: none;
 			}
 
-			.sound-toggle {
+			.control button {
 				background: none;
 				border: none;
 				padding: 5px;
 			}
 
-			.sound-toggle img {
+			.control button img {
 				width: 1rem;
+			}
+
+			.control-close {
+				position: absolute;
+				top: 0;
+				right: 0;
+				padding: 5px;
 			}
 		</style>
 	</head>
@@ -129,69 +142,92 @@
 			<div class="face btm"></div>
 			<div class="hand"></div>
 		</section>
-		<div class="control" style="display: none;">
-			<button class="sound-toggle"></button>
-			<div>
-				<input name="minutes" type="number" value="0" />m
+		<section class="control" style="display: none;">
+			<div class="control-inner">
+				<button class="sound-toggle"></button>
+				<button class="clock-hand-toggle"></button>
+				<div style="white-space: nowrap;">
+					<input name="minutes" type="number" value="0" />m
+				</div>
+				<div style="white-space: nowrap;">
+					<input name="seconds" type="number" value="15" />s
+				</div>
 			</div>
-			<div>
-				<input name="seconds" type="number" value="15" />s
-			</div>
-		</div>
+			<button class="control-close">
+				<img src="close.svg" alt="Close" />
+			</button>
+		</section>
 		<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js"></script>
 		<script>
-			const savedOptions = JSON.parse(localStorage.getItem('options') || '{}')
-			const localOptions = Object.fromEntries(
-				window.location.search
-					.substring(1)
-					.split('&')
-					.filter(text => text.length > 0)
-					.map(text => text.includes('=') ? text.split('=') : [text, true])
-			)
-			const options = Object.assign(savedOptions, localOptions)
+			const $clockHand = $('.clock .hand')
 
-			if (_.isEqual(savedOptions, localOptions) === false) {
-				writeOptions()
-			}
+			const options = new Proxy({
+				time: Math.floor(parseInt((window.location.hash.match(/\d+/) || ['15'])[0])),
+				silent: false,
+				clockHandVisible: true,
+			}, {
+				set(options, field, value) {
+					options[field] = value
 
-			const jumpSound = options.silent ? { play: () => { } } : new Audio('./button-29.wav')
-			const tickSound = options.silent ? { play: () => { } } : new Audio('./tick.wav')
-			const beepSound = options.silent ? { play: () => { } } : new Audio('./beep.wav')
-			const deadSound = new Audio('./dead.wav')
+					window.location.hash = '#' + options.time + (options.silent ? 'x' : '') + (options.clockHandVisible ? 'h' : '')
 
-			function writeOptions() {
-				window.localStorage.setItem('options', JSON.stringify(options))
+					$('.sound-toggle').html(options.silent ? '<img src="sound-off.svg" />' : '<img src="sound-on.svg" />')
 
-				window.location.replace(
-					window.location.origin +
-					window.location.pathname +
-					'?' + Object.entries(options).map(([key, value]) => value === true ? key : key + '=' + value).join('&'),
-				)
-			}
+					$('.clock-hand-toggle').html(options.clockHandVisible ? '<img src="clock-hand-on.svg" />' : '<img src="clock-hand-off.svg" />')
+					$clockHand.css('display', options.clockHandVisible ? '' : 'none')
 
-			const count = Math.floor(parseInt(options.time))
-			if (isNaN(count) || count <= 0) {
-				options.time = 15
-				writeOptions()
+					return true
+				}
+			})
+
+			options.silent = window.location.hash.includes('x')
+			options.clockHandVisible = window.location.hash.includes('h')
+
+			const sound = {
+				jump() {
+					if (!options.silent) {
+						new Audio('./button-29.wav').play()
+					}
+				},
+				tick() {
+					if (!options.silent) {
+						new Audio('./tick.wav').play()
+					}
+				},
+				beep() {
+					if (!options.silent) {
+						new Audio('./beep.wav').play()
+					}
+				},
+				dead() {
+					if (!options.silent) {
+						new Audio('./dead.wav').play()
+					}
+				},
 			}
 
 			function getUnits(value) {
+				if (value < 100) {
+					return {
+						m: 0,
+						s: value
+					}
+				}
+
 				return {
 					m: Math.floor(value / 60),
 					s: value % 60
 				}
 			}
 
-			window.document.title = `${getUnits(count).m}m ${getUnits(count).s}s`
-
-			const digit = (Math.floor(count / 60) || '').toString().length + (count >= 60 ? 2 : count.toString().length)
-			let value = count
+			const digit = (Math.floor(options.time / 60) || '').toString().length + (options.time >= 60 ? 2 : options.time.toString().length)
+			let value = options.time
 			let timer = null
-			const clockHand = $('.clock .hand')
 
 			function paint() {
 				const { m, s } = getUnits(value)
-				$('.clock .face').html(count >= 60 ? (m + '' + `<span style="font-weight: 200;">${String(s).padStart(2, '0')}</span>`) : s)
+				$('.clock .face').html(m ? (m + '' + `<span style="font-weight: 200;">${String(s).padStart(2, '0')}</span>`) : s)
+				window.document.title = (m ? m + 'm ' : '') + s + 's'
 
 				if (value === 0) {
 					$('.clock').addClass('time-out')
@@ -202,8 +238,8 @@
 			paint()
 
 			function clearAnimation() {
-				clockHand.removeClass('start')
-				void clockHand[0].offsetWidth // See https://css-tricks.com/restart-css-animation/#update-another-javascript-method-to-restart-a-css-animation
+				$clockHand.removeClass('start')
+				void $clockHand[0].offsetWidth // See https://css-tricks.com/restart-css-animation/#update-another-javascript-method-to-restart-a-css-animation
 			}
 
 			function resize() {
@@ -216,12 +252,12 @@
 
 			function start() {
 				clearInterval(timer)
-				jumpSound.play()
+				sound.jump()
 
-				value = count
+				value = options.time
 				paint()
 				clearAnimation()
-				clockHand.addClass('start')
+				$clockHand.addClass('start')
 
 				timer = setInterval(() => {
 					if (timer === null) {
@@ -232,21 +268,21 @@
 					paint()
 
 					if (value === 0) {
-						deadSound.play()
+						sound.dead()
 						clearInterval(timer)
 						timer = null
 						clearAnimation()
 
 					} else if (value < 5) {
-						beepSound.play()
+						sound.beep()
 
 					} else if (value <= 15) {
 						if (value % 2 === 0) {
-							tickSound.play()
+							sound.tick()
 						}
 
 					} else if (value % 5 === 0) {
-						tickSound.play()
+						sound.tick()
 					}
 				}, 1000)
 			}
@@ -255,7 +291,7 @@
 				clearInterval(timer)
 				timer = null
 
-				value = count
+				value = options.time
 				paint()
 				clearAnimation()
 			}
@@ -282,7 +318,7 @@
 				pause()
 
 				if ($('.control').css('display') === 'none') {
-					const { m, s } = getUnits(count)
+					const { m, s } = getUnits(options.time)
 					$('input[name="minutes"]').val(m)
 					$('input[name="seconds"]').val(s)
 
@@ -303,24 +339,21 @@
 			$('input[type="number"]').on('keyup', e => {
 				if (e.key === 'Enter') {
 					options.time = parseInt($('input[name="minutes"]').val() || '0') * 60 + parseInt($('input[name="seconds"]').val() || '0')
-					writeOptions()
 				}
 			})
 
-			function paintVolume() {
-				if (options.silent) {
-					delete options.silent
-					$('.sound-toggle').html('<img src="volume_up-white-18dp.svg" />')
-				} else {
-					options.silent = true
-					$('.sound-toggle').html('<img src="volume_off-white-18dp.svg" />')
-				}
-			}
-
-			paintVolume()
-
 			$('.sound-toggle').on('click', () => {
-				paintVolume()
+				options.silent = !options.silent
+			})
+
+			$('.clock-hand-toggle').on('click', () => {
+				options.clockHandVisible = !options.clockHandVisible
+			})
+
+			$('.control-close').on('click', () => {
+				pause()
+
+				$('.control').css('display', 'none')
 			})
 
 			// Stop the device from going to sleep
