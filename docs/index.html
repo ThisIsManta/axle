@@ -89,6 +89,7 @@
 				height: 100%;
 				background: black;
 				display: flex;
+				gap: 20px;
 				align-items: center;
 				justify-content: center;
 			}
@@ -102,7 +103,7 @@
 				font-size: inherit;
 				width: 3rem;
 				padding: 0 5px;
-				margin: 0 5px 0 20px;
+				margin-right: 5px;
 				outline: none;
 			}
 
@@ -129,13 +130,11 @@
 			<div class="hand"></div>
 		</section>
 		<div class="control" style="display: none;">
-			<div>
-				<button class="sound-toggle">
-					<img src="volume_up-white-18dp.svg" />
-				</button>
-			</div>
+			<button class="sound-toggle"></button>
 			<div>
 				<input name="minutes" type="number" value="0" />m
+			</div>
+			<div>
 				<input name="seconds" type="number" value="15" />s
 			</div>
 		</div>
@@ -297,6 +296,10 @@
 				}
 			})
 
+			$('input[type="number"]').on('click', e => {
+				e.currentTarget.value = ''
+			})
+
 			$('input[type="number"]').on('keyup', e => {
 				if (e.key === 'Enter') {
 					options.time = parseInt($('input[name="minutes"]').val() || '0') * 60 + parseInt($('input[name="seconds"]').val() || '0')
@@ -304,16 +307,20 @@
 				}
 			})
 
-			if (options.silent) {
-				$('.sound-toggle img').attr('src', 'volume_off-white-18dp.svg')
-			}
-			$('.sound-toggle').on('click', () => {
+			function paintVolume() {
 				if (options.silent) {
 					delete options.silent
+					$('.sound-toggle').html('<img src="volume_up-white-18dp.svg" />')
 				} else {
 					options.silent = true
+					$('.sound-toggle').html('<img src="volume_off-white-18dp.svg" />')
 				}
-				writeOptions()
+			}
+
+			paintVolume()
+
+			$('.sound-toggle').on('click', () => {
+				paintVolume()
 			})
 
 			// Stop the device from going to sleep
