@@ -164,7 +164,7 @@
 			const options = new Proxy({
 				time: Math.floor(parseInt((window.location.hash.match(/\d+/) || ['15'])[0])),
 				silent: false,
-				clockHandVisible: true,
+				clockHandVisible: false,
 			}, {
 				set(options, field, value) {
 					options[field] = value
